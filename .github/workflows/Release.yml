@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs: 
+  deploy:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Main
+        uses: actions/checkout@v4
+      
+      - name: Install Pesde
+        uses: lumin-org/setup-pesde@v0.4.1
+
+      - name: Install Dependencies
+        run: pesde install
+
+      - name: Build jecs-example.rbxlx
+        run: rojo build -o jecs-example.rbxlx pack.project.json
+
+      - name: Upload jecs-example.rbxlx as build artifact
+        uses: actions/upload-artifact@v4
+        with: 
+          name: jecs-example
+          path: jecs-example.rbxlx
+
+      - name: Get Version from pesde.toml
+        uses: SebRollen/toml-action@v1.0.0
+        id: read_toml
+        with: 
+          file: 'pesde.toml'
+          field: 'version'
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with: 
+          name: ${{ steps.read_toml.outputs.value }}
+          tag_name: ${{ steps.read_toml.outputs.value }}
+          files: jecs-example.rbxlx
+          draft: true
