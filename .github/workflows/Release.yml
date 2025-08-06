@@ -17,21 +17,39 @@ jobs:
     steps:
       - name: Checkout Main
         uses: actions/checkout@v4
-      
-      - name: Get Latest Pesde Release
+
+      - name: Get Latest Pesde Release Info
+        id: latest_release
         uses: pozetroninc/github-action-get-latest-release@v0.8.0
         with:
           repository: pesde-pkg/pesde
-      
-      - name: Install Pesde
-        shell: bash
+
+      - name: Download Pesde Linux Binary
+        run: |
+          LATEST_VERSION=${{ steps.latest_release.outputs.release }}
+          ASSET_URL="https://github.com/pesde-pkg/pesde/releases/download/${LATEST_VERSION}/pesde-${LATEST_VERSION}-linux-x86_64.zip"
+          curl -L "$ASSET_URL" -o pesde.zip
+          unzip pesde.zip
+          chmod +x pesde
+
+      - name: Self-install Pesde
         run: |
           ./pesde self-install
           rm ./pesde
           echo "$HOME/.pesde/bin" >> $GITHUB_PATH
-      
-      - name: Install Dependencies
+
+      - name: Add Pesde to PATH
+        run: echo "$HOME/.pesde/bin" >> $GITHUB_PATH
+
+      - name: Install Pesde Dependencies
         run: pesde install
+
+      - name: Install Rojo
+        run: |
+          curl -L https://github.com/rojo-rbx/rojo/releases/latest/download/rojo-linux.zip -o rojo.zip
+          unzip rojo.zip
+          chmod +x rojo
+          sudo mv rojo /usr/local/bin/rojo
 
       - name: Build jecs-example.rbxlx
         run: rojo build -o jecs-example.rbxlx pack.project.json
