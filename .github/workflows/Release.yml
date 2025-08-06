@@ -19,13 +19,18 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Install Pesde
-        uses: lumin-org/setup-pesde@v0.4.1
-      
-      - name: Add bins to PATH
-        if: runner.os != 'Windows'
         shell: bash
         run: |
-          echo -e "$HOME/.pesde/bin" >> $GITHUB_PATH
+          latest_release=$(curl -s https://api.github.com/repos/pesde-pkg/pesde/releases | jq '[.[] | select(.prerelease == true or .prerelease == false)][0]')
+          download_url=$(echo "$latest_release" | jq -r '.assets[] | select(.name | endswith("linux-x86_64.tar.gz")) | .browser_download_url')
+
+          curl -L -o /tmp/pesde.tar.gz "$download_url"
+          tar -xzvf /tmp/pesde.tar.gz
+          chmod +x pesde
+
+          ./pesde self-install
+          rm ./pesde
+          echo "$HOME/.pesde/bin" >> $GITHUB_PATH
       
       - name: Install Dependencies
         run: pesde install
