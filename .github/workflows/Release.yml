@@ -21,6 +21,12 @@ jobs:
       - name: Install Pesde
         uses: lumin-org/setup-pesde@v0.4.1
       
+      - name: Add bins to PATH
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          echo -e "$HOME/.pesde/bin" >> $GITHUB_PATH
+      
       - name: Install Dependencies
         run: pesde install
 
