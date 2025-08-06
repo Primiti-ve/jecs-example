@@ -17,20 +17,34 @@ jobs:
     steps:
       - name: Checkout Main
         uses: actions/checkout@v4
+      
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Get Latest Pesde Release Info
-        id: latest_release
-        uses: pozetroninc/github-action-get-latest-release@v0.8.0
-        with:
-          repository: pesde-pkg/pesde
 
-      - name: Download Pesde Linux Binary
+      - name: Get and Download Latest Pesde Linux Binary
+        env:
+          REPO: pesde-pkg/pesde
         run: |
-          LATEST_VERSION=${{ steps.latest_release.outputs.release }}
-          ASSET_URL="https://github.com/pesde-pkg/pesde/releases/download/${LATEST_VERSION}/pesde-${LATEST_VERSION}-linux-x86_64.zip"
+          # Get latest release info from GitHub API
+          RELEASE_JSON=$(curl -s "https://api.github.com/repos/$REPO/releases/latest")
+
+          # Extract version tag
+          VERSION=$(echo "$RELEASE_JSON" | jq -r .tag_name)
+
+          # Find asset URL for linux-x86_64
+          ASSET_URL=$(echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name | endswith("linux-x86_64.zip")) | .browser_download_url')
+
+          if [ -z "$ASSET_URL" ]; then
+            echo "Could not find a linux-x86_64.zip asset in release $VERSION"
+            exit 1
+          fi
+
+          echo "Downloading: $ASSET_URL"
           curl -L "$ASSET_URL" -o pesde.zip
           unzip pesde.zip
           chmod +x pesde
+
 
       - name: Self-install Pesde
         run: |
